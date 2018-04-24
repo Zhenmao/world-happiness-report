@@ -2,13 +2,30 @@
   let countries;
   let scores;
 
-  const scoreThresholds = [4, 5, 6, 7];
+  const countryColWidth = 160;
+  const scoreColWidth = 50;
+  let factorColWidth;
 
+  const scoreThresholds = [4, 5, 6, 7];
   const scoreColors = ['#d0587e', '#db8b95', '#e5b9ad', '#74ada2', '#009392'];
+  const factorColors = ['#f3cbd3', '#eaa9bd', '#dd88ac', '#ca699d', '#b14d8e', '#91357d', '#6c2167'].reverse();
+
+  const tableColNames = ['Country', 'Score', 'Factor'];
+  const factors = ["Explained by: GDP per capita", "Explained by: Social support", "Explained by: Healthy life expectancy", "Explained by: Freedom to make life choices", "Explained by: Generosity", "Explained by: Perceptions of corruption", "Dystopia (1.92) + residual"];
 
   const mapColorScale = d3.scaleThreshold()
     .domain(scoreThresholds)
     .range(scoreColors);
+
+  const tableColorScale = d3.scaleOrdinal()
+    .domain(factors)
+    .range(factorColors);
+
+  const tableColScale = d3.scaleOrdinal()
+    .domain(tableColNames);
+
+  const tableFactorScale = d3.scaleLinear()
+    .domain([0, 8]);
 
   Promise.all([
     d3.json('countries.json'),
@@ -22,13 +39,15 @@
       });
     });
     scores = d3.map(csv, d => d.Country);
-    console.log(json);
-    console.log(csv);
+
     renderMap();
+    renderTable();
   });
 
   function renderMap() {
-    const map = L.map('map').setView([40, 0], 2);
+    const map = L.map('map', {
+      scrollWheelZoom: false
+    }).setView([40, 0], 2);
     const geojson = L.geoJson(countries, { 
       style: style,
       onEachFeature: onEachFeature
@@ -93,12 +112,67 @@
     }
 
     function onEachFeature(feature, layer) {
+      const country = scores.get(feature.properties.name);
+      if (!country) return;
       layer.on({
         mouseover: highlightFeature,
-        mouseout: resetHighlight,
-        // click: zoomToFeature
+        mouseout: resetHighlight
       });
     }
+  }
+
+  function renderTable() {
+    const tableWidth = document.getElementById('table').clientWidth;
+    factorColWidth = tableWidth - countryColWidth - scoreColWidth;
+
+    tableColScale.range([countryColWidth, scoreColWidth, factorColWidth]);
+    tableFactorScale.range([0, factorColWidth]);
+
+    const table = d3.select('#table');
+
+    // Remove pervious rendering
+    table.selectAll('*').remove();
+
+    // Table headers
+    table.append('thead').append('tr')
+      .selectAll('th')
+      .data(tableColNames)
+      .enter().append('th')
+      .style('width', d => tableColScale(d) + 'px')
+      .text(d => d);
+
+    // Table body
+    const tr = table.append('tbody')
+      .selectAll('tr')
+      .data(scores.values())
+      .enter().append('tr');
+
+    // Country name column
+    tr.append('td')
+      .attr('class', 'country-label')
+      .text(d => d.Country);
+
+    // Score column
+    tr.append('td')
+      .attr('class', 'country-score')
+      .text(d => d['Happiness score']);
+
+    // Factor column
+    tr.append('td')
+      .attr('class', 'country-factor')
+      .append('div')
+      .attr('class', 'factor-wrapper')
+      .style('width', factorColWidth + 'px')
+      .selectAll('.factor-bar')
+      .data(d => factors.map(factor => ({
+        factor: factor,
+        value: d[factor]
+      })))
+      .enter().append('div')
+      .attr('class', 'factor-bar')
+      .style('background-color', d => tableColorScale(d.factor))
+      .style('width', d => tableFactorScale(d.value) + 'px');
+    
   }
 
 })();

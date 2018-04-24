@@ -1,10 +1,27 @@
 body {
   font-family: 'Noto Sans', sans-serif;
   font-size: 12px;
+  color: #666;
 }
 
 #map {
-  height: 500px;
+  height: 400px;
+}
+
+#table {
+  margin: 10px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2.5em;
+  text-transform: capitalize;
+}
+
+/* Map */
+
+.leaflet-container {
+    background-color: #fff;
 }
 
 .leaflet-control-attribution {
@@ -37,5 +54,29 @@ body {
 .legend-scale li span {
   display: block;
   width: 50px;
+  height: 16px;
+}
+
+/* Table */
+
+tr {
+  height: 30px;
+}
+
+th {
+  text-align: left;
+}
+
+.factor-wrapper {
+  background-color: #f2f2f2;
+  border: 1px solid #ddd;
+  display: inline-block;
   height: 20px;
+}
+
+.factor-bar {
+  display: inline-block;
+  height: 20px;
+  border-right: 1px solid #f2f2f2;
+  fill-opacity: 0.7;
 }
