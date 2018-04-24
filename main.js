@@ -6,6 +6,7 @@
   let geojsonLayer;
   let scrollContainer;
   let infoBox;
+  const tooltip = d3.select('body').append('div').attr('id', 'tooltip');
 
   const countryColWidth = 160;
   const scoreColWidth = 50;
@@ -17,7 +18,7 @@
   const scoreColors = ['#d0587e', '#db8b95', '#e5b9ad', '#74ada2', '#009392'];
   const factorColors = ['#f3cbd3', '#eaa9bd', '#dd88ac', '#ca699d', '#b14d8e', '#91357d', '#6c2167'].reverse();
 
-  const tableColNames = ['Country', 'Score', 'Factor'];
+  const tableColNames = ['Country', 'Score', 'Factors'];
   const factors = ["Explained by: GDP per capita", "Explained by: Social support", "Explained by: Healthy life expectancy", "Explained by: Freedom to make life choices", "Explained by: Generosity", "Explained by: Perceptions of corruption", "Dystopia (1.92) + residual"];
 
   const mapColorScale = d3.scaleThreshold()
@@ -183,7 +184,9 @@
       .attr('class', 'factor-bar')
       .style('background-color', d => tableColorScale(d.factor))
       .style('width', d => tableFactorScale(d.value) + 'px')
-      .style('height', factorBarHeight + 'px');
+      .style('height', factorBarHeight + 'px')
+      .on('mouseover', showTooltip)
+      .on('mouseout', hideTooltip);
 
     scrollContainer = table.select('tbody');
     
@@ -228,11 +231,29 @@
 
   function updateInfo(country) {
     if (!country) {
-      infoBox.innerHTML = '<b>Hover over a country</b><br>Score: <br>Rank: ';
+      infoBox.innerHTML = '<b>Hover over a country</b><br>Rank: <br>Score: ';
     } else {
       const d = scoresMap.get(country);
-      infoBox.innerHTML = `<b>${d.Country}</b><br>Score: <b>${d['Happiness score']}</b><br>Rank: <b>${d.Rank}</b>`;
+      infoBox.innerHTML = `<b>${d.Country}</b><br>Rank: <b>${d.Rank}</b><br>Score: <b>${d['Happiness score']}</b>`;
     }
+  }
+
+  function showTooltip(d) {
+    d3.select(this).style('opacity', 1);
+
+    tooltip.html(`${d.factor}<br>${d.value}`);
+    const tooltipBCR = tooltip.node().getBoundingClientRect();
+    const barBCR = this.getBoundingClientRect();
+
+    tooltip.style('top', window.scrollY + barBCR.top - tooltipBCR.height - 6 + 'px')
+      .style('left', window.scrollX + barBCR.left + barBCR.width / 2 - tooltipBCR.width / 2 + 'px')
+      .style('opacity', 1);
+  }
+
+  function hideTooltip() {
+    d3.select(this).style('opacity', 0.7);
+
+    tooltip.style('opacity', 0);
   }
 
   function scrollTopTween(scrollTop) {
