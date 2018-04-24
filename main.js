@@ -1,9 +1,11 @@
 (function() {
   let countries;
   let scores;
+  let scoresMap;
 
   let geojsonLayer;
   let scrollContainer;
+  let infoBox;
 
   const countryColWidth = 160;
   const scoreColWidth = 50;
@@ -36,15 +38,16 @@
     d3.json('countries.json'),
     d3.csv('whr2018scores.csv')
   ]).then(([json, csv]) => {
-    csv.forEach(d => {
+    csv.forEach((d, i) => {
       csv.columns.forEach(column => {
         if (column === 'Country') return;
         d[column] = +d[column];
       });
+      d.Rank = i + 1;
     });
     scores = csv;
+    scoresMap = d3.map(csv, d => d.Country);
 
-    const scoresMap = d3.map(csv, d => d.Country);
     countries = json;
     countries.features.forEach(el => {
       const country = scoresMap.get(el.properties.name);
@@ -55,6 +58,7 @@
 
     renderMap();
     renderTable();
+    updateInfo();
   });
 
   function renderMap() {
@@ -69,6 +73,11 @@
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = drawLegend;
     legend.addTo(map);
+
+    const info = L.control({ position: 'bottomleft' });
+    info.onAdd = () => L.DomUtil.create('div', 'map-info');
+    info.addTo(map);
+    infoBox = document.getElementsByClassName('map-info')[0];
 
     function style(feature) {
       const score = feature.properties.score;
@@ -181,6 +190,7 @@
   }
 
   function highlightFeature(e) {
+    // Highlight
     const layer = e.target;
     layer.setStyle({
       color: '#666'
@@ -191,13 +201,19 @@
     }
 
     const country = layer.feature.properties.name;
-    if (country) {
-      scrollToRow(country);
-    }
+    // Scroll
+    scrollToRow(country);
+
+    // Update info
+    updateInfo(country);
   }
 
   function resetHighlight(e) {
+    // Reset highlight
     geojsonLayer.resetStyle(e.target);
+
+    // Update info
+    updateInfo();
   }
 
   function scrollToRow(country) {
@@ -208,6 +224,15 @@
       .transition()
       .duration(1000)
       .tween("scrollTop", scrollTopTween(scrollTop));
+  }
+
+  function updateInfo(country) {
+    if (!country) {
+      infoBox.innerHTML = '<b>Hover over a country</b><br>Score: <br>Rank: ';
+    } else {
+      const d = scoresMap.get(country);
+      infoBox.innerHTML = `<b>${d.Country}</b><br>Score: <b>${d['Happiness score']}</b><br>Rank: <b>${d.Rank}</b>`;
+    }
   }
 
   function scrollTopTween(scrollTop) {
