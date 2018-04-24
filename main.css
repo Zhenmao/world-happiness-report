@@ -4,14 +4,6 @@ body {
   color: #666;
 }
 
-#map {
-  height: 400px;
-}
-
-#table {
-  margin: 10px;
-}
-
 h1 {
   text-align: center;
   font-size: 2.5em;
@@ -19,6 +11,9 @@ h1 {
 }
 
 /* Map */
+#map {
+  height: 400px;
+}
 
 .leaflet-container {
     background-color: #fff;
@@ -58,9 +53,18 @@ h1 {
 }
 
 /* Table */
+#table {
+  margin: 30px 20px;
+}
 
-tr {
-  height: 30px;
+thead{
+  display: block;
+}
+
+tbody {
+  display: block;
+  height: 400px;
+  overflow: auto;
 }
 
 th {
@@ -71,12 +75,10 @@ th {
   background-color: #f2f2f2;
   border: 1px solid #ddd;
   display: inline-block;
-  height: 20px;
 }
 
 .factor-bar {
   display: inline-block;
-  height: 20px;
   border-right: 1px solid #f2f2f2;
-  fill-opacity: 0.7;
+  opacity: 0.7;
 }

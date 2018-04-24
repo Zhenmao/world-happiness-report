@@ -2,8 +2,13 @@
   let countries;
   let scores;
 
+  let geojsonLayer;
+  let scrollContainer;
+
   const countryColWidth = 160;
   const scoreColWidth = 50;
+  const tableRowHeight = 30;
+  const factorBarHeight = 20;
   let factorColWidth;
 
   const scoreThresholds = [4, 5, 6, 7];
@@ -31,14 +36,22 @@
     d3.json('countries.json'),
     d3.csv('whr2018scores.csv')
   ]).then(([json, csv]) => {
-    countries = json;
     csv.forEach(d => {
       csv.columns.forEach(column => {
         if (column === 'Country') return;
         d[column] = +d[column];
       });
     });
-    scores = d3.map(csv, d => d.Country);
+    scores = csv;
+
+    const scoresMap = d3.map(csv, d => d.Country);
+    countries = json;
+    countries.features.forEach(el => {
+      const country = scoresMap.get(el.properties.name);
+      if (country) {
+        el.properties.score = country['Happiness score']
+      }
+    });
 
     renderMap();
     renderTable();
@@ -48,19 +61,19 @@
     const map = L.map('map', {
       scrollWheelZoom: false
     }).setView([40, 0], 2);
-    const geojson = L.geoJson(countries, { 
+    geojsonLayer = L.geoJson(countries, { 
       style: style,
       onEachFeature: onEachFeature
     }).addTo(map);
 
-    const legend = L.control({ position: 'bottomleft' });
+    const legend = L.control({ position: 'bottomright' });
     legend.onAdd = drawLegend;
     legend.addTo(map);
 
     function style(feature) {
-      const country = scores.get(feature.properties.name);
+      const score = feature.properties.score;
       return {
-        fillColor: country ? mapColorScale(country['Happiness score']) : '#ddd',
+        fillColor: score ? mapColorScale(score) : '#ddd',
         weight: 1,
         color: '#fff',
         fillOpacity: 0.7
@@ -96,24 +109,8 @@
       return div.node();
     }
 
-    function highlightFeature(e) {
-      const layer = e.target;
-      layer.setStyle({
-        color: '#666'
-      });
-
-      if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-        layer.bringToFront();
-      }
-    }
-
-    function resetHighlight(e) {
-      geojson.resetStyle(e.target);
-    }
-
     function onEachFeature(feature, layer) {
-      const country = scores.get(feature.properties.name);
-      if (!country) return;
+      if (!feature.properties.score) return;
       layer.on({
         mouseover: highlightFeature,
         mouseout: resetHighlight
@@ -123,7 +120,7 @@
 
   function renderTable() {
     const tableWidth = document.getElementById('table').clientWidth;
-    factorColWidth = tableWidth - countryColWidth - scoreColWidth;
+    factorColWidth = tableWidth - countryColWidth - scoreColWidth - 20;
 
     tableColScale.range([countryColWidth, scoreColWidth, factorColWidth]);
     tableFactorScale.range([0, factorColWidth]);
@@ -144,25 +141,30 @@
     // Table body
     const tr = table.append('tbody')
       .selectAll('tr')
-      .data(scores.values())
-      .enter().append('tr');
+      .data(scores)
+      .enter().append('tr')
+      .style('height', tableRowHeight + 'px');
 
     // Country name column
     tr.append('td')
       .attr('class', 'country-label')
+      .style('width', countryColWidth + 'px')
       .text(d => d.Country);
 
     // Score column
     tr.append('td')
       .attr('class', 'country-score')
+      .style('width', scoreColWidth + 'px')
       .text(d => d['Happiness score']);
 
     // Factor column
     tr.append('td')
       .attr('class', 'country-factor')
+      .style('width', factorColWidth + 'px')
       .append('div')
       .attr('class', 'factor-wrapper')
       .style('width', factorColWidth + 'px')
+      .style('height', factorBarHeight + 'px')
       .selectAll('.factor-bar')
       .data(d => factors.map(factor => ({
         factor: factor,
@@ -171,8 +173,49 @@
       .enter().append('div')
       .attr('class', 'factor-bar')
       .style('background-color', d => tableColorScale(d.factor))
-      .style('width', d => tableFactorScale(d.value) + 'px');
+      .style('width', d => tableFactorScale(d.value) + 'px')
+      .style('height', factorBarHeight + 'px');
+
+    scrollContainer = table.select('tbody');
     
+  }
+
+  function highlightFeature(e) {
+    const layer = e.target;
+    layer.setStyle({
+      color: '#666'
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+      layer.bringToFront();
+    }
+
+    const country = layer.feature.properties.name;
+    if (country) {
+      scrollToRow(country);
+    }
+  }
+
+  function resetHighlight(e) {
+    geojsonLayer.resetStyle(e.target);
+  }
+
+  function scrollToRow(country) {
+    const countryIndex = scores.findIndex(d => d.Country === country);
+    if (countryIndex === -1) return;
+    const scrollTop = countryIndex * tableRowHeight;
+    scrollContainer
+      .transition()
+      .duration(1000)
+      .tween("scrollTop", scrollTopTween(scrollTop));
+  }
+
+  function scrollTopTween(scrollTop) {
+    return function() {
+      const i = d3.interpolateNumber(this.scrollTop, scrollTop);
+      const node = this;
+      return function (t) { node.scrollTop = i(t); };
+    };
   }
 
 })();
