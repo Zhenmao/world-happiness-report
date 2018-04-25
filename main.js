@@ -14,11 +14,12 @@
   const factorBarHeight = 20;
   let factorColWidth;
 
+  const maxScore = 8;
   const scoreThresholds = [4, 5, 6, 7];
   const scoreColors = ['#d0587e', '#db8b95', '#e5b9ad', '#74ada2', '#009392'];
   const factorColors = ['#f3cbd3', '#eaa9bd', '#dd88ac', '#ca699d', '#b14d8e', '#91357d', '#6c2167'].reverse();
 
-  const tableColNames = ['Country', 'Score', 'Factors'];
+  const tableColNames = ['Country', 'Score', 'All Factors'];
   const factors = ["Explained by: GDP per capita", "Explained by: Social support", "Explained by: Healthy life expectancy", "Explained by: Freedom to make life choices", "Explained by: Generosity", "Explained by: Perceptions of corruption", "Dystopia (1.92) + residual"];
 
   const mapColorScale = d3.scaleThreshold()
@@ -31,9 +32,6 @@
 
   const tableColScale = d3.scaleOrdinal()
     .domain(tableColNames);
-
-  const tableFactorScale = d3.scaleLinear()
-    .domain([0, 8]);
 
   Promise.all([
     d3.json('countries.json'),
@@ -61,6 +59,8 @@
     renderTable();
     updateInfo();
   });
+
+  window.addEventListener('resize', updateTable);
 
   function renderMap() {
     const map = L.map('map', {
@@ -131,21 +131,17 @@
   function renderTable() {
     const tableWidth = document.getElementById('table').clientWidth;
     factorColWidth = tableWidth - countryColWidth - scoreColWidth - 20;
-
     tableColScale.range([countryColWidth, scoreColWidth, factorColWidth]);
-    tableFactorScale.range([0, factorColWidth]);
 
     const table = d3.select('#table');
 
-    // Remove pervious rendering
-    table.selectAll('*').remove();
-
     // Table headers
-    table.append('thead').append('tr')
+    const th = table.append('thead').append('tr')
       .selectAll('th')
       .data(tableColNames)
       .enter().append('th')
       .style('width', d => tableColScale(d) + 'px')
+      .append('div')
       .text(d => d);
 
     // Table body
@@ -183,13 +179,47 @@
       .enter().append('div')
       .attr('class', 'factor-bar')
       .style('background-color', d => tableColorScale(d.factor))
-      .style('width', d => tableFactorScale(d.value) + 'px')
+      .style('width', d => d.value / maxScore * 100 + '%')
       .style('height', factorBarHeight + 'px')
       .on('mouseover', showTooltip)
       .on('mouseout', hideTooltip);
 
     scrollContainer = table.select('tbody');
-    
+
+    // Render the factor selection dropdown
+    const dropdown = th.filter((d, i) => i === tableColNames.length - 1)
+      .attr('class', 'ui dropdown');
+
+    const dropdownFirstOption = dropdown.text();
+    dropdown.text('');
+    dropdown.append('div').attr('class', 'text').text(dropdownFirstOption);
+    dropdown.append('i').attr('class', 'dropdown icon');
+
+    dropdown.append('div').attr('class', 'menu')
+      .selectAll('div')
+      .data(['All Factors'].concat(factors))
+      .enter().append('div')
+      .attr('class', (d, i) => {
+        return i === 0 ? 'active item' : 'item';
+      })
+      .text(d => d);
+
+    $('.ui.dropdown')
+      .dropdown({
+        onChange: factorChanged
+      });
+  }
+
+  function updateTable() {
+    const tableWidth = document.getElementById('table').clientWidth;
+    factorColWidth = tableWidth - countryColWidth - scoreColWidth - 20;
+    tableColScale.range([countryColWidth, scoreColWidth, factorColWidth]);
+
+    const table = d3.select('#table');
+
+    table.selectAll('th').style('width', d => tableColScale(d) + 'px');
+    table.selectAll('.country-factor').style('width', factorColWidth + 'px')
+      .select('.factor-wrapper').style('width', factorColWidth + 'px');
   }
 
   function highlightFeature(e) {
@@ -254,6 +284,10 @@
     d3.select(this).style('opacity', 0.7);
 
     tooltip.style('opacity', 0);
+  }
+
+  function factorChanged(value, text) {
+    console.log(text);
   }
 
   function scrollTopTween(scrollTop) {

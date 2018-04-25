@@ -10,6 +10,13 @@ h1 {
   text-transform: capitalize;
 }
 
+.ui.dropdown .menu>.item,
+.ui.dropdown .menu .active.item {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 12px;
+  color: #666;
+}
+
 /* Map */
 #map {
   height: 400px;
@@ -75,6 +82,10 @@ tbody {
 
 th {
   text-align: left;
+}
+
+td {
+  white-space: nowrap
 }
 
 .factor-wrapper {
