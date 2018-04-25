@@ -14,7 +14,7 @@
   const factorBarHeight = 20;
   let factorColWidth;
 
-  const maxScore = 8;
+  const maxScores = {};
   const scoreThresholds = [4, 5, 6, 7];
   const scoreColors = ['#d0587e', '#db8b95', '#e5b9ad', '#74ada2', '#009392'];
   const factorColors = ['#f3cbd3', '#eaa9bd', '#dd88ac', '#ca699d', '#b14d8e', '#91357d', '#6c2167'].reverse();
@@ -55,12 +55,21 @@
       }
     });
 
+    // Get the max score for each factor
+    ['Happiness score'].concat(factors)
+      .forEach(factor => {
+        const maxScore = d3.max(scores, d => d[factor]);
+        maxScores[factor] = maxScore;
+      });
+
+    console.log(maxScores);
+
     renderMap();
     renderTable();
     updateInfo();
   });
 
-  window.addEventListener('resize', updateTable);
+  window.addEventListener('resize', resizeTable);
 
   function renderMap() {
     const map = L.map('map', {
@@ -170,7 +179,7 @@
       .append('div')
       .attr('class', 'factor-wrapper')
       .style('width', factorColWidth + 'px')
-      .style('height', factorBarHeight + 'px')
+      .style('height', factorBarHeight + 2 + 'px') // Account for top and bottom borders
       .selectAll('.factor-bar')
       .data(d => factors.map(factor => ({
         factor: factor,
@@ -179,7 +188,7 @@
       .enter().append('div')
       .attr('class', 'factor-bar')
       .style('background-color', d => tableColorScale(d.factor))
-      .style('width', d => d.value / maxScore * 100 + '%')
+      .style('width', d => d.value / maxScores['Happiness score'] * 100 + '%')
       .style('height', factorBarHeight + 'px')
       .on('mouseover', showTooltip)
       .on('mouseout', hideTooltip);
@@ -210,7 +219,7 @@
       });
   }
 
-  function updateTable() {
+  function resizeTable() {
     const tableWidth = document.getElementById('table').clientWidth;
     factorColWidth = tableWidth - countryColWidth - scoreColWidth - 20;
     tableColScale.range([countryColWidth, scoreColWidth, factorColWidth]);
@@ -286,8 +295,33 @@
     tooltip.style('opacity', 0);
   }
 
-  function factorChanged(value, text) {
-    console.log(text);
+  function factorChanged(_, factor) {
+    if (factor === 'All Factors') {
+      const currentMaxScore = maxScore;
+    } else {
+      const currentMaxScore = d3.max(scores, d => d[factor]);
+    }
+
+    const table = d3.select('#table');
+
+    // Update score
+    table.selectAll('.country-score')
+      .text(d => factor === 'All Factors' ? d['Happiness score'] : d[factor]);
+
+    // Update bars
+    table.selectAll('.factor-bar')
+      .style('display', d => {
+        if (factor === 'All Factors') return 'inline-block';
+        return d.factor === factor ? 'inline-block' : 'none';
+      })
+      .style('width', d => {
+        if (factor === 'All Factors') {
+          return d.value / maxScores['Happiness score'] * 100 + '%'
+        } else {
+          return d.value / maxScores[factor] * 100 + '%'
+        }
+      });
+
   }
 
   function scrollTopTween(scrollTop) {

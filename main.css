@@ -17,6 +17,10 @@ h1 {
   color: #666;
 }
 
+.ui.dropdown .menu {
+  z-index: 900;
+}
+
 /* Map */
 #map {
   height: 400px;
@@ -92,12 +96,14 @@ td {
   background-color: #f2f2f2;
   border: 1px solid #ddd;
   display: inline-block;
+  box-sizing: border-box;
 }
 
 .factor-bar {
   display: inline-block;
   border-right: 1px solid #f2f2f2;
   opacity: 0.7;
+  box-sizing: border-box;
 }
 
 /* Tooltip */
