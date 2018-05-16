@@ -62,8 +62,6 @@
         maxScores[factor] = maxScore;
       });
 
-    console.log(maxScores);
-
     renderMap();
     renderTable();
     updateInfo();
@@ -297,7 +295,7 @@
 
   function factorChanged(_, factor) {
     if (factor === 'All Factors') {
-      const currentMaxScore = maxScore;
+      const currentMaxScore = maxScores;
     } else {
       const currentMaxScore = d3.max(scores, d => d[factor]);
     }
